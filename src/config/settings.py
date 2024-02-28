@@ -23,5 +23,6 @@ include(
     "components/auth_password_validators.py",
     "components/folders.py",
     "components/database.py",
-    "components/internationalization.py"
+    "components/internationalization.py",
+    "components/drf.py"
 )
