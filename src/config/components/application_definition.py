@@ -7,7 +7,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Third-party apps
     "rest_framework",
-    "drf_spectacular"
+    "drf_spectacular",
+    # Local apps
+    "education",
 ]
 
 MIDDLEWARE = [

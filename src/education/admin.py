@@ -1,3 +1,21 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import Lesson, Product
+
+
+@admin.register(Lesson)
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ('name', 'product', 'link')
+    list_display_links = ('name',)
+    ordering = ['name']
+    list_per_page = 20
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'starting_date', 'creator_id',
+                    'price', 'min_students', 'max_students'
+                    )
+    list_display_links = ('name', 'starting_date', 'creator_id')
+    ordering = ['name']
+    list_per_page = 20
