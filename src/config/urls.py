@@ -1,10 +1,12 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+from education.urls import urlpatterns as education_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("", include(education_urls))
 ]
 
 urlpatterns += [
