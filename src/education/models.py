@@ -41,8 +41,33 @@ class Product(UUIDMixin, TimeStampedMixin):
     def __str__(self) -> str:
         return self.name
 
+
 class Lesson(UUIDMixin, TimeStampedMixin):
 
     name = models.CharField(max_length=100, blank=False, null=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=False, null=False)
     link = models.URLField(blank=False, null=False)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Group(UUIDMixin, TimeStampedMixin):
+
+    name = models.CharField(max_length=100, blank=False, null=False)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=False, null=False)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class UserProduct(UUIDMixin):
+
+    user_id = models.UUIDField(blank=False, null=False)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=False, null=False)
+
+
+class UserGroup(UUIDMixin):
+
+    user_id = models.UUIDField(blank=False, null=False)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, blank=False, null=False)
