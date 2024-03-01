@@ -51,6 +51,16 @@ class Lesson(UUIDMixin, TimeStampedMixin):
     def __str__(self) -> str:
         return self.name
 
+    def model_dump(self):
+        return {
+            "id": self.id,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "name": self.name,
+            "link": self.link,
+            "product": self.product.id
+        }
+
 
 class Group(UUIDMixin, TimeStampedMixin):
 
@@ -66,6 +76,7 @@ class UserProduct(UUIDMixin):
     user_id = models.UUIDField(blank=False, null=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=False, null=False)
 
+    # add unique constraint
 
 class UserGroup(UUIDMixin):
 
