@@ -3,9 +3,11 @@
 Для запуска необходимо:
 
 1. в папке src/config/ создать файл db.sqlite3;
-2. применить миграции командой python manage.py migrate;
-3. создать пользователя командой python manage.py createsuperuser;
-4. запустить приложение командой python manage.py runserver.
+2. создать виртуальное окружение и установить зависимости из pyproject.toml;
+3. заполнить .env файл в корневой папке проекта по примеру .env.example
+4. применить миграции командой python manage.py migrate;
+5. создать пользователя командой python manage.py createsuperuser;
+6. запустить приложение командой python manage.py runserver.
 Все комады запуска выполняются из папки /src
 
 После запуска OpenAPI доступен по адресу: http://127.0.0.1:8000/api/schema/swagger-ui/
