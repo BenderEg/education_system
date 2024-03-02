@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Lesson, Product, Group, UserGroup
+from .models import Lesson, Product, Group
 
 
 @admin.register(Lesson)
@@ -26,11 +26,4 @@ class GroupAdmin(admin.ModelAdmin):
     list_display = ('name',)
     list_display_links = ('name',)
     ordering = ['name']
-    list_per_page = 20
-
-
-@admin.register(UserGroup)
-class UserGroupAdmin(admin.ModelAdmin):
-    list_display = ('user_id', 'group_id')
-    list_display_links = ('user_id', 'group_id')
     list_per_page = 20

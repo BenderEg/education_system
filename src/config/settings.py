@@ -24,5 +24,5 @@ include(
     "components/folders.py",
     "components/database.py",
     "components/internationalization.py",
-    "components/drf.py"
+    "components/drf.py",
 )

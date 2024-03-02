@@ -1,9 +1,10 @@
-from typing import Iterable
+from datetime import datetime
 import uuid
 
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.db import models, transaction
+from django.db import models, transaction, IntegrityError
 from django.db.models.functions import Now
+from education.exceptions import NoAvailibleGroupsException, UserAlreadyAddedToProductException
 
 
 class TimeStampedMixin(models.Model):
@@ -77,58 +78,94 @@ class UserProduct(UUIDMixin):
     user_id = models.UUIDField(blank=False, null=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, blank=False, null=False)
 
-    # add unique constraint
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user_id', 'product_id'],
+                                    name='unique_user_product_idx')
+        ]
 
     def save(self, product_id: uuid.UUID, user_id: uuid.UUID, *args, **kwargs):
-        super(UserProduct, self).save(*args, **kwargs)
         product = Product.objects.get(id=product_id)
-        groups = Group.objects.raw("SELECT education_group.id, education_group.name, \
-                                    count(education_usergroup.user_id) as students \
-                                    FROM education_usergroup RIGHT \
-                                    JOIN education_group \
-                                    ON education_group.id = education_usergroup.group_id \
-                                    GROUP BY education_group.id \
-                                    ORDER BY students DESC")
-        groups_ids = [ele.id for ele in groups]
-        availible_groups = list(filter(lambda x: x.students < product.max_students, groups))
-        if availible_groups:
-            # add user to the most filled group
-            new = UserGroup(group_id=availible_groups[0].id, user_id=user_id)
-            new.save()
-        else:
-            # create new group if all groups are filled
+        # check if product has started
+        if product.starting_date.date() > datetime.utcnow().date():
+            # if not started add user to UserProducts, add user to UserGroup
             with transaction.atomic():
-                new_group = Group(name="autogenerate", product_id=product_id)
-                new_group.save()
-                new = UserGroup(group_id=new_group.id, user_id=user_id)
-                new.save()
-                groups_ids.append(new_group.id)
-        # reorginize students in groups
-        users = UserGroup.objects.filter(group_id__in=groups_ids).only("id")
-        if len(users) <= product.min_students:
-            return
-        with transaction.atomic():
-            i = 1
-            while True:
-                if len(users)/i <= product.max_students:
-                    choosen_groups = groups_ids[:i]
-                    part = len(users)//i
-                    new_lines = []
-                    j = 0
-                    for ele in choosen_groups:
-                        lines = [(value.id, ele) for value in users[j:j+part]]
-                        new_lines.extend(lines)
-                        j += part
-                    k = 0
-                    for ele in users[j:]:
-                        new_lines.append((ele.id, choosen_groups[k]))
-                        k += 1
-                    UserGroup.objects.filter(group_id__in=groups_ids).delete()
-                    UserGroup.objects.bulk_create(
-                        [UserGroup(user_id=ele[0], group_id=ele[1]) for ele in new_lines]
-                        )
-                    break
-                i += 1
+                try:
+                    super(UserProduct, self).save(*args, **kwargs)
+                except IntegrityError:
+                    raise UserAlreadyAddedToProductException()
+                groups = Group.objects.raw("SELECT education_group.id, education_group.name, \
+                                            count(education_usergroup.user_id) as students \
+                                            FROM education_usergroup RIGHT \
+                                            JOIN education_group \
+                                            ON education_group.id = education_usergroup.group_id \
+                                            WHERE education_group.product_id = %(key)s \
+                                            GROUP BY education_group.id \
+                                            ORDER BY students DESC",
+                                            params={"key": str(product_id).replace("-", "")})
+                groups_ids = [ele.id for ele in groups]
+                availible_groups = list(filter(lambda x: x.students < product.max_students, groups))
+                if availible_groups:
+                    # add user to the most filled group
+                    new = UserGroup(group_id=availible_groups[0].id, user_id=user_id)
+                    new.save()
+                else:
+                    # create new group if all groups are filled
+                    new_group = Group(name="autogenerate", product_id=product_id)
+                    new_group.save()
+                    new = UserGroup(group_id=new_group.id, user_id=user_id)
+                    new.save()
+                    groups_ids.append(new_group.id)
+            # reorginize students in groups
+            users = UserGroup.objects.filter(group_id__in=groups_ids).only("id")
+            if len(users) <= product.min_students:
+                return
+            with transaction.atomic():
+                i = 1
+                while True:
+                    if len(users)/i <= product.max_students:
+                        choosen_groups = groups_ids[:i]
+                        part = len(users)//i
+                        new_lines = []
+                        j = 0
+                        for ele in choosen_groups:
+                            lines = [(value.id, ele) for value in users[j:j+part]]
+                            new_lines.extend(lines)
+                            j += part
+                        k = 0
+                        for ele in users[j:]:
+                            new_lines.append((ele.id, choosen_groups[k]))
+                            k += 1
+                        UserGroup.objects.filter(group_id__in=groups_ids).delete()
+                        UserGroup.objects.bulk_create(
+                            [UserGroup(user_id=ele[0], group_id=ele[1]) for ele in new_lines]
+                            )
+                        return
+                    i += 1
+        # product lessons started - check availible places
+        else:
+            groups = Group.objects.raw("SELECT education_group.id, \
+                                        count(education_usergroup.user_id) as students \
+                                        FROM education_usergroup \
+                                        RIGHT JOIN education_group \
+                                        ON education_group.id = education_usergroup.group_id \
+                                        WHERE education_group.product_id = %(key)s\
+                                        GROUP BY education_group.id \
+                                        ORDER BY students ASC",
+                                        params={"key": str(product_id).replace("-", "")})
+            availible_groups = list(filter(lambda x: x.students < product.max_students, groups))
+            if availible_groups:
+                # add user to the less filled group
+                with transaction.atomic():
+                    try:
+                        super(UserProduct, self).save(*args, **kwargs)
+                    except IntegrityError:
+                        raise UserAlreadyAddedToProductException()
+                    new = UserGroup(group_id=availible_groups[0].id, user_id=user_id)
+                    new.save()
+                return
+            raise NoAvailibleGroupsException()
+
 
 class UserGroup(UUIDMixin):
 
