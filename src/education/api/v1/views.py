@@ -1,15 +1,12 @@
-from typing import List
 from uuid import UUID
 
-from django.db import connection
-from django.http import JsonResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from education.models import UserProduct, Product, Lesson
+from education.models import Product, Lesson, UserProduct
 from education.serializers import UserProductSerializer, LessonSerializer
 from education.schemas.product import ProductLesson, ListProductLesson
 
@@ -21,15 +18,12 @@ class ProductSubscriptionView(APIView):
         product_id: UUID,
         user_id: UUID,
     ):
-        serializer = UserProductSerializer(data={
-            "user_id": user_id,
-            "product_id": product_id
-            }
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        result = UserProduct(user_id=user_id, product_id=product_id)
+        result.save(product_id, user_id)
+        return Response(data={"id": result.id,
+                              "user_id": user_id,
+                              "product_id": product_id},
+                              status=status.HTTP_201_CREATED)
 
 
 class ProductsView(APIView):
