@@ -8,6 +8,7 @@
 4. применить миграции командой python manage.py migrate;
 5. создать пользователя командой python manage.py createsuperuser;
 6. запустить приложение командой python manage.py runserver.
+
 Все комады запуска выполняются из папки /src
 
 После запуска OpenAPI доступен по адресу: http://127.0.0.1:8000/api/schema/swagger-ui/
